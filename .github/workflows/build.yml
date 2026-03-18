@@ -1,0 +1,47 @@
+name: Build Applications
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_name: TextRepeater.exe
+            asset_name: TextRepeater-Windows
+          - os: macos-latest
+            artifact_name: TextRepeater
+            asset_name: TextRepeater-macOS
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+        pip install -r requirements.txt
+        
+    - name: Build with PyInstaller (Windows)
+      if: matrix.os == 'windows-latest'
+      run: pyinstaller --noconsole --onefile --windowed --name "TextRepeater" main.py
+
+    - name: Build with PyInstaller (Mac)
+      if: matrix.os == 'macos-latest'
+      run: pyinstaller --noconsole --windowed --name "TextRepeater" main.py
+      
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.asset_name }}
+        path: dist/*
