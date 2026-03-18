@@ -21,10 +21,11 @@ class TextRepeaterApp(ctk.CTk):
         # Always on top by default
         self.attributes("-topmost", True)
         self.is_running = False
+        self.targets = []
 
         # --- Header ---
         self.header_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.header_frame.pack(fill="x", padx=20, pady=(20, 10))
+        self.header_frame.pack(fill="x", padx=20, pady=(15, 5))
         
         self.title_label = ctk.CTkLabel(self.header_frame, text="⚡ Text Sender Pro", font=("Helvetica", 28, "bold"), text_color="#1f6aa5")
         self.title_label.pack(anchor="center")
@@ -34,26 +35,39 @@ class TextRepeaterApp(ctk.CTk):
 
         # --- Message Card ---
         self.msg_frame = ctk.CTkFrame(self)
-        self.msg_frame.pack(fill="x", padx=20, pady=(10, 10))
+        self.msg_frame.pack(fill="x", padx=20, pady=(5, 10))
 
         self.text_label = ctk.CTkLabel(self.msg_frame, text="📝 Message Payload", font=("Helvetica", 14, "bold"))
         self.text_label.pack(anchor="w", padx=15, pady=(10, 5))
         
-        self.hint_label = ctk.CTkLabel(self.msg_frame, text="Tip: Use {count} to inject message numbers and bypass spam filters.", font=("Helvetica", 11), text_color="gray")
+        self.hint_label = ctk.CTkLabel(self.msg_frame, text="Tip: Use {count} to inject message numbers into the text.", font=("Helvetica", 11), text_color="gray")
         self.hint_label.pack(anchor="w", padx=15, pady=(0, 5))
 
-        self.text_input = ctk.CTkTextbox(self.msg_frame, height=100, border_width=1, border_color="#333333")
-        self.text_input.pack(fill="x", padx=15, pady=(0, 5))
+        self.text_input = ctk.CTkTextbox(self.msg_frame, height=90, border_width=1, border_color="#333333")
+        self.text_input.pack(fill="x", padx=15, pady=(0, 15))
 
-        self.nav_label = ctk.CTkLabel(self.msg_frame, text="🔀 Next Chat Key (Optional):", font=("Helvetica", 12, "bold"))
-        self.nav_label.pack(anchor="w", padx=15, pady=(5, 0))
+
+        # --- Target Recorder Card ---
+        self.target_frame = ctk.CTkFrame(self)
+        self.target_frame.pack(fill="x", padx=20, pady=(0, 10))
+
+        self.target_label = ctk.CTkLabel(self.target_frame, text="🎯 Multi-Target Bomber (Optional)", font=("Helvetica", 14, "bold"))
+        self.target_label.pack(anchor="w", padx=15, pady=(10, 0))
         
-        self.nav_hint = ctk.CTkLabel(self.msg_frame, text="Type 'tab' to switch box, or 'ctrl+tab' / 'cmd+tab' for browser tabs!", font=("Helvetica", 11), text_color="gray")
-        self.nav_hint.pack(anchor="w", padx=15, pady=0)
+        self.target_hint = ctk.CTkLabel(self.target_frame, text="Record the locations of multiple chat boxes (Insta, FB, WP).\nThe bot will automatically click and cycle through all of them!", font=("Helvetica", 11), text_color="gray", justify="left")
+        self.target_hint.pack(anchor="w", padx=15, pady=(2, 5))
 
-        self.nav_input = ctk.CTkEntry(self.msg_frame, placeholder_text="e.g. tab, down, ctrl+tab")
-        self.nav_input.pack(fill="x", padx=15, pady=(5, 15))
+        self.target_status = ctk.CTkLabel(self.target_frame, text="Recorded Chat Boxes: 0", font=("Helvetica", 13, "bold"), text_color="#f59f00")
+        self.target_status.pack(anchor="w", padx=15, pady=(0, 5))
 
+        self.target_btn_frame = ctk.CTkFrame(self.target_frame, fg_color="transparent")
+        self.target_btn_frame.pack(fill="x", padx=15, pady=(0, 15))
+
+        self.record_btn = ctk.CTkButton(self.target_btn_frame, text="[+] Record Box", fg_color="#1f6aa5", width=120, height=32, font=("Helvetica", 12, "bold"), command=self.start_record_target)
+        self.record_btn.pack(side="left", padx=(0, 10))
+
+        self.clear_btn = ctk.CTkButton(self.target_btn_frame, text="[x] Clear", fg_color="#c92a2a", hover_color="#a61e1e", width=60, height=32, font=("Helvetica", 12, "bold"), command=self.clear_targets)
+        self.clear_btn.pack(side="left")
 
         # --- Settings Card ---
         self.settings_frame = ctk.CTkFrame(self)
@@ -70,17 +84,16 @@ class TextRepeaterApp(ctk.CTk):
         self.count_slider.pack(fill="x", padx=15, pady=(0, 15))
 
         # Delay
-        self.delay_label = ctk.CTkLabel(self.settings_frame, text="Base Delay: 1.0s (Anti-ban variance applied)", font=("Helvetica", 12))
+        self.delay_label = ctk.CTkLabel(self.settings_frame, text="Base Delay: 1.0s (Anti-ban variance automatically added)", font=("Helvetica", 12))
         self.delay_label.pack(anchor="w", padx=15)
         self.delay_slider = ctk.CTkSlider(self.settings_frame, from_=0.1, to=10.0, command=self.update_delay_label)
         self.delay_slider.set(1.0)
         self.delay_slider.pack(fill="x", padx=15, pady=(0, 15))
 
-        # --- Advanced Framework ---
+        # --- Advanced Switches ---
         self.adv_frame = ctk.CTkFrame(self)
-        self.adv_frame.pack(fill="x", padx=20, pady=(0, 10))
+        self.adv_frame.pack(fill="x", padx=20, pady=(0, 5))
 
-        # Using a grid inside for better switch alignment
         self.adv_frame.columnconfigure(0, weight=1)
         self.adv_frame.columnconfigure(1, weight=1)
 
@@ -98,7 +111,7 @@ class TextRepeaterApp(ctk.CTk):
 
         # --- Action Footer ---
         self.footer_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.footer_frame.pack(fill="both", expand=True, padx=20, pady=(10, 20))
+        self.footer_frame.pack(fill="both", expand=True, padx=20, pady=(0, 10))
 
         self.status_label = ctk.CTkLabel(self.footer_frame, text="Status: Idle", font=("Helvetica", 14, "bold"), text_color="gray")
         self.status_label.pack(pady=(0, 10))
@@ -113,6 +126,30 @@ class TextRepeaterApp(ctk.CTk):
         self.warn_label.pack(pady=(5, 0))
 
 
+    # --- Target Recorder Logic ---
+    def start_record_target(self):
+        self.record_btn.configure(state="disabled")
+        threading.Thread(target=self.record_target_task, daemon=True).start()
+
+    def record_target_task(self):
+        try:
+            for i in range(3, 0, -1):
+                self.target_status.configure(text=f"Point mouse at chat box in {i}s...", text_color="#f59f00")
+                time.sleep(1)
+            
+            x, y = pyautogui.position()
+            self.targets.append((x, y))
+            self.target_status.configure(text=f"Recorded Chat Boxes: {len(self.targets)}", text_color="#37b24d")
+        except Exception as e:
+            self.target_status.configure(text=f"Error recording!", text_color="#c92a2a")
+        
+        self.record_btn.configure(state="normal")
+
+    def clear_targets(self):
+        self.targets = []
+        self.target_status.configure(text="Recorded Chat Boxes: 0", text_color="#f59f00")
+
+    # --- UI Callbacks ---
     def toggle_topmost(self):
         self.attributes("-topmost", self.always_on_top_var.get())
 
@@ -129,8 +166,10 @@ class TextRepeaterApp(ctk.CTk):
             self.count_label.configure(text=f"Target Amount: {int(value)}")
 
     def update_delay_label(self, value):
-        self.delay_label.configure(text=f"Base Delay: {value:.1f}s (Anti-ban variance applied)")
+        self.delay_label.configure(text=f"Base Delay: {value:.1f}s")
 
+
+    # --- Spam Logic ---
     def start_sending(self):
         text = self.text_input.get("1.0", "end-1c").strip()
         if not text:
@@ -141,15 +180,15 @@ class TextRepeaterApp(ctk.CTk):
         delay = self.delay_slider.get()
         infinite = self.infinite_var.get()
         use_paste = self.instant_paste_var.get()
-        nav_key = self.nav_input.get().strip()
 
         self.is_running = True
         self.start_btn.configure(state="disabled")
         self.stop_btn.configure(state="normal")
         self.text_input.configure(state="disabled")
-        self.nav_input.configure(state="disabled")
+        self.record_btn.configure(state="disabled")
+        self.clear_btn.configure(state="disabled")
         
-        threading.Thread(target=self.sending_task, args=(text, count, delay, infinite, use_paste, nav_key), daemon=True).start()
+        threading.Thread(target=self.sending_task, args=(text, count, delay, infinite, use_paste), daemon=True).start()
 
     def stop_sending(self):
         self.is_running = False
@@ -160,17 +199,23 @@ class TextRepeaterApp(ctk.CTk):
         self.start_btn.configure(state="normal")
         self.stop_btn.configure(state="disabled")
         self.text_input.configure(state="normal")
-        self.nav_input.configure(state="normal")
+        self.record_btn.configure(state="normal")
+        self.clear_btn.configure(state="normal")
 
-    def sending_task(self, original_text, count, delay, infinite, use_paste, nav_key):
+    def sending_task(self, original_text, count, delay, infinite, use_paste):
         try:
-            # 5 seconds grace period
-            for i in range(5, 0, -1):
+            has_targets = len(self.targets) > 0
+            # 5 seconds grace period ONLY if we don't have auto-click targets.
+            # If we have targets, it will click them itself, so we just give 2 seconds heads up.
+            start_delay = 2 if has_targets else 5
+            for i in range(start_delay, 0, -1):
                 if not self.is_running: return
-                self.status_label.configure(text=f"Starting in {i}s... Switch to your Chat!", text_color="#f59f00")
+                msg = f"Bot starting in {i}s..." if has_targets else f"Starting in {i}s... Switch to Chat!"
+                self.status_label.configure(text=msg, text_color="#f59f00")
                 time.sleep(1)
 
             i = 0
+            target_idx = 0
             
             # Identify platform for pasting
             modifier_key = 'command' if sys.platform == 'darwin' else 'ctrl'
@@ -182,6 +227,13 @@ class TextRepeaterApp(ctk.CTk):
                 
                 # Dynamic text replacement!
                 current_text = original_text.replace("{count}", str(i))
+
+                # IF TARGETS EXIST, AUTO CLICK FIRST
+                if has_targets:
+                    tx, ty = self.targets[target_idx]
+                    pyautogui.click(tx, ty)
+                    time.sleep(0.15) # Wait a tiny bit for the window/box to gain focus
+                    target_idx = (target_idx + 1) % len(self.targets) # cycle exactly like a loop
 
                 if use_paste:
                     pyperclip.copy(current_text)
@@ -195,24 +247,11 @@ class TextRepeaterApp(ctk.CTk):
                 # Press enter to send
                 time.sleep(0.05)
                 pyautogui.press("enter")
-                
-                # JUMP TO NEXT CHAT / TEXT BOX IF CONFIGURED!
-                if nav_key:
-                    time.sleep(0.1) # micro-rest before switching focus
-                    try:
-                        if '+' in nav_key:
-                            keys = [k.strip().lower() for k in nav_key.split('+')]
-                            pyautogui.hotkey(*keys)
-                        else:
-                            pyautogui.press(nav_key.lower())
-                    except Exception:
-                        pass # Ignore if user typed an invalid key
 
                 # Dynamic delay
                 actual_delay = delay + random.uniform(0.0, 0.3)
                 
                 # Anti-Spam "Taking a breath" logic
-                # Pauses an extra 1.5 to 3.5 seconds every 15 messages
                 if i % 15 == 0:
                     actual_delay += random.uniform(1.5, 3.5)
 
