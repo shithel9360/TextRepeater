@@ -5,6 +5,9 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     strategy:
@@ -45,3 +48,9 @@ jobs:
       with:
         name: ${{ matrix.asset_name }}
         path: dist/*
+
+    - name: Upload Windows to Release directly
+      if: matrix.os == 'windows-latest'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: gh release upload v1.0.0 "dist/TextRepeater.exe" --clobber -R ${{ github.repository }}
