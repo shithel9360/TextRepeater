@@ -3,6 +3,8 @@ import pyautogui
 import time
 import threading
 import random
+import pyperclip
+import sys
 
 # Configure appearance
 ctk.set_appearance_mode("Dark")
@@ -13,7 +15,7 @@ class TextRepeaterApp(ctk.CTk):
         super().__init__()
 
         self.title("Unlimited Text Sender (Pro)")
-        self.geometry("450x650")
+        self.geometry("450x700")
         self.resizable(False, False)
         
         # Always on top by default
@@ -28,7 +30,7 @@ class TextRepeaterApp(ctk.CTk):
         self.instruction_label.pack(pady=(0, 15))
 
         # Text input
-        self.text_label = ctk.CTkLabel(self, text="Message to send:")
+        self.text_label = ctk.CTkLabel(self, text="Message to send: (Type {count} for message numbering!)")
         self.text_label.pack(anchor="w", padx=40)
         self.text_input = ctk.CTkTextbox(self, height=80)
         self.text_input.pack(fill="x", padx=40, pady=(0, 15))
@@ -39,11 +41,15 @@ class TextRepeaterApp(ctk.CTk):
 
         self.always_on_top_var = ctk.BooleanVar(value=True)
         self.top_switch = ctk.CTkSwitch(self.options_frame, text="Keep Window Always on Top", variable=self.always_on_top_var, command=self.toggle_topmost)
-        self.top_switch.pack(pady=10, padx=10, anchor="w")
+        self.top_switch.pack(pady=(10, 5), padx=10, anchor="w")
 
         self.infinite_var = ctk.BooleanVar(value=False)
         self.infinite_switch = ctk.CTkSwitch(self.options_frame, text="Infinite Mode (Send Until Stopped)", variable=self.infinite_var, command=self.toggle_infinite_mode)
-        self.infinite_switch.pack(pady=(0, 10), padx=10, anchor="w")
+        self.infinite_switch.pack(pady=5, padx=10, anchor="w")
+
+        self.instant_paste_var = ctk.BooleanVar(value=True)
+        self.instant_paste_switch = ctk.CTkSwitch(self.options_frame, text="Super Fast (Paste instead of Type)", variable=self.instant_paste_var)
+        self.instant_paste_switch.pack(pady=(5, 10), padx=10, anchor="w")
 
         # Count slider
         self.count_label = ctk.CTkLabel(self, text="Number of messages: 20")
@@ -55,7 +61,7 @@ class TextRepeaterApp(ctk.CTk):
         # Rate Limit slider (Delay)
         self.delay_label = ctk.CTkLabel(self, text="Rate Limit Delay: 1.0 seconds\n(Protects from bans!)")
         self.delay_label.pack(anchor="w", padx=40)
-        self.delay_slider = ctk.CTkSlider(self, from_=0.1, to=5.0, command=self.update_delay_label)
+        self.delay_slider = ctk.CTkSlider(self, from_=0.1, to=10.0, command=self.update_delay_label)
         self.delay_slider.set(1.0)
         self.delay_slider.pack(fill="x", padx=40, pady=(0, 15))
 
@@ -69,7 +75,6 @@ class TextRepeaterApp(ctk.CTk):
 
         self.stop_btn = ctk.CTkButton(self, text="EMERGENCY STOP", fg_color="#dc3545", hover_color="#c82333", font=("Helvetica", 14, "bold"), height=40, command=self.stop_sending, state="disabled")
         self.stop_btn.pack(pady=5, padx=40, fill="x")
-
 
     def toggle_topmost(self):
         self.attributes("-topmost", self.always_on_top_var.get())
@@ -98,13 +103,14 @@ class TextRepeaterApp(ctk.CTk):
         count = int(self.count_slider.get())
         delay = self.delay_slider.get()
         infinite = self.infinite_var.get()
+        use_paste = self.instant_paste_var.get()
 
         self.is_running = True
         self.start_btn.configure(state="disabled")
         self.stop_btn.configure(state="normal")
         self.text_input.configure(state="disabled")
         
-        threading.Thread(target=self.sending_task, args=(text, count, delay, infinite), daemon=True).start()
+        threading.Thread(target=self.sending_task, args=(text, count, delay, infinite, use_paste), daemon=True).start()
 
     def stop_sending(self):
         self.is_running = False
@@ -116,7 +122,7 @@ class TextRepeaterApp(ctk.CTk):
         self.stop_btn.configure(state="disabled")
         self.text_input.configure(state="normal")
 
-    def sending_task(self, text, count, delay, infinite):
+    def sending_task(self, original_text, count, delay, infinite, use_paste):
         try:
             # 5 seconds grace period
             for i in range(5, 0, -1):
@@ -125,18 +131,39 @@ class TextRepeaterApp(ctk.CTk):
                 time.sleep(1)
 
             i = 0
+            
+            # Identify platform for pasting
+            modifier_key = 'command' if sys.platform == 'darwin' else 'ctrl'
+
             while self.is_running and (infinite or i < count):
                 i += 1
                 total_str = "∞" if infinite else str(count)
                 self.status_label.configure(text=f"Sending {i} / {total_str}...", text_color="#55ffff")
                 
-                # Tiny random variation to mimic human typing
-                type_speed = max(0.001, random.uniform(0.002, 0.015))
-                pyautogui.write(text, interval=type_speed)
+                # Dynamic text replacement!
+                current_text = original_text.replace("{count}", str(i))
+
+                if use_paste:
+                    pyperclip.copy(current_text)
+                    time.sleep(0.05)
+                    pyautogui.hotkey(modifier_key, 'v')
+                else:
+                    # Tiny random variation to mimic human typing
+                    type_speed = max(0.001, random.uniform(0.002, 0.015))
+                    pyautogui.write(current_text, interval=type_speed)
+                
+                # Press enter to send
+                time.sleep(0.05)
                 pyautogui.press("enter")
                 
-                # Small random variation to the delay too
+                # Dynamic delay
                 actual_delay = delay + random.uniform(0.0, 0.3)
+                
+                # Anti-Spam "Taking a breath" logic
+                # Pauses an extra 1 to 3 seconds every 15 messages so the system thinks you're human
+                if i % 15 == 0:
+                    actual_delay += random.uniform(1.5, 3.5)
+
                 time.sleep(actual_delay)
 
             if self.is_running:
