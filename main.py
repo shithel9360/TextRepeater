@@ -232,7 +232,9 @@ class TextRepeaterApp(ctk.CTk):
                 if has_targets:
                     tx, ty = self.targets[target_idx]
                     pyautogui.click(tx, ty)
-                    time.sleep(0.15) # Wait a tiny bit for the window/box to gain focus
+                    time.sleep(0.2)
+                    pyautogui.click(tx, ty)
+                    time.sleep(0.4) # Crucial on Mac: first click focuses the App, second click focuses the Text Box
                     target_idx = (target_idx + 1) % len(self.targets) # cycle exactly like a loop
 
                 if use_paste:
