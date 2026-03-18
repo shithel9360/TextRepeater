@@ -1,4 +1,4 @@
-name: Build Applications
+name: Build and Release Latest
 
 on:
   push:
@@ -14,16 +14,15 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            artifact_name: TextRepeater.exe
-            asset_name: TextRepeater-Windows
+            asset_name: TextRepeater.exe
           - os: macos-latest
-            artifact_name: TextRepeater
-            asset_name: TextRepeater-macOS
+            asset_name: TextRepeater-macOS.zip
 
     runs-on: ${{ matrix.os }}
-
+    
     steps:
     - uses: actions/checkout@v4
+    
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
@@ -35,22 +34,40 @@ jobs:
         pip install pyinstaller
         pip install -r requirements.txt
         
-    - name: Build with PyInstaller (Windows)
+    - name: Build (Windows)
       if: matrix.os == 'windows-latest'
       run: pyinstaller --noconsole --onefile --windowed --name "TextRepeater" main.py
 
-    - name: Build with PyInstaller (Mac)
+    - name: Build and Zip (Mac)
       if: matrix.os == 'macos-latest'
-      run: pyinstaller --noconsole --windowed --name "TextRepeater" main.py
-      
-    - name: Upload Artifacts
+      run: |
+        pyinstaller --noconsole --windowed --name "TextRepeater" main.py
+        cd dist
+        zip -r TextRepeater-macOS.zip TextRepeater.app
+        
+    - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.asset_name }}
-        path: dist/*
+        path: |
+          dist/TextRepeater.exe
+          dist/TextRepeater-macOS.zip
+        if-no-files-found: ignore
 
-    - name: Upload Windows to Release directly
-      if: matrix.os == 'windows-latest'
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: gh release upload v1.0.0 "dist/TextRepeater.exe" --clobber -R ${{ github.repository }}
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+          
+      - name: Update 'latest' release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: "🔥 Latest Auto-Build"
+          body: "This release automatically compiles and updates every single time you push new code!"
+          prerelease: true
+          files: artifacts/*
