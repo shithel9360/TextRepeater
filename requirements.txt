@@ -1,4 +1,4 @@
 customtkinter
 pyautogui
-pyobjc-core
-pyobjc
+pyobjc-core; sys_platform == 'darwin'
+pyobjc; sys_platform == 'darwin'
