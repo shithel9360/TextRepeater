@@ -64,11 +64,11 @@ class TextRepeaterApp(ctk.CTk):
         self.status_label.pack(pady=5)
 
         # Action Buttons
-        self.start_btn = ctk.CTkButton(self, text="START (5s Prep Delay)", fg_color="#28a745", hover_color="#218838", font=("Helvetica", 14, "bold"), command=self.start_sending)
-        self.start_btn.pack(pady=(5, 5), padx=40, fill="x", height=40)
+        self.start_btn = ctk.CTkButton(self, text="START (5s Prep Delay)", fg_color="#28a745", hover_color="#218838", font=("Helvetica", 14, "bold"), height=40, command=self.start_sending)
+        self.start_btn.pack(pady=(5, 5), padx=40, fill="x")
 
-        self.stop_btn = ctk.CTkButton(self, text="EMERGENCY STOP", fg_color="#dc3545", hover_color="#c82333", font=("Helvetica", 14, "bold"), command=self.stop_sending, state="disabled")
-        self.stop_btn.pack(pady=5, padx=40, fill="x", height=40)
+        self.stop_btn = ctk.CTkButton(self, text="EMERGENCY STOP", fg_color="#dc3545", hover_color="#c82333", font=("Helvetica", 14, "bold"), height=40, command=self.stop_sending, state="disabled")
+        self.stop_btn.pack(pady=5, padx=40, fill="x")
 
 
     def toggle_topmost(self):
