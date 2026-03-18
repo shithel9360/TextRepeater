@@ -15,7 +15,7 @@ class TextRepeaterApp(ctk.CTk):
         super().__init__()
 
         self.title("Unlimited Text Sender Pro")
-        self.geometry("480x800")
+        self.geometry("480x880")
         self.resizable(False, False)
         
         # Always on top by default
@@ -43,7 +43,17 @@ class TextRepeaterApp(ctk.CTk):
         self.hint_label.pack(anchor="w", padx=15, pady=(0, 5))
 
         self.text_input = ctk.CTkTextbox(self.msg_frame, height=100, border_width=1, border_color="#333333")
-        self.text_input.pack(fill="x", padx=15, pady=(0, 15))
+        self.text_input.pack(fill="x", padx=15, pady=(0, 5))
+
+        self.nav_label = ctk.CTkLabel(self.msg_frame, text="🔀 Next Chat Key (Optional):", font=("Helvetica", 12, "bold"))
+        self.nav_label.pack(anchor="w", padx=15, pady=(5, 0))
+        
+        self.nav_hint = ctk.CTkLabel(self.msg_frame, text="Type 'tab' to switch box, or 'ctrl+tab' / 'cmd+tab' for browser tabs!", font=("Helvetica", 11), text_color="gray")
+        self.nav_hint.pack(anchor="w", padx=15, pady=0)
+
+        self.nav_input = ctk.CTkEntry(self.msg_frame, placeholder_text="e.g. tab, down, ctrl+tab")
+        self.nav_input.pack(fill="x", padx=15, pady=(5, 15))
+
 
         # --- Settings Card ---
         self.settings_frame = ctk.CTkFrame(self)
@@ -131,13 +141,15 @@ class TextRepeaterApp(ctk.CTk):
         delay = self.delay_slider.get()
         infinite = self.infinite_var.get()
         use_paste = self.instant_paste_var.get()
+        nav_key = self.nav_input.get().strip()
 
         self.is_running = True
         self.start_btn.configure(state="disabled")
         self.stop_btn.configure(state="normal")
         self.text_input.configure(state="disabled")
+        self.nav_input.configure(state="disabled")
         
-        threading.Thread(target=self.sending_task, args=(text, count, delay, infinite, use_paste), daemon=True).start()
+        threading.Thread(target=self.sending_task, args=(text, count, delay, infinite, use_paste, nav_key), daemon=True).start()
 
     def stop_sending(self):
         self.is_running = False
@@ -148,8 +160,9 @@ class TextRepeaterApp(ctk.CTk):
         self.start_btn.configure(state="normal")
         self.stop_btn.configure(state="disabled")
         self.text_input.configure(state="normal")
+        self.nav_input.configure(state="normal")
 
-    def sending_task(self, original_text, count, delay, infinite, use_paste):
+    def sending_task(self, original_text, count, delay, infinite, use_paste, nav_key):
         try:
             # 5 seconds grace period
             for i in range(5, 0, -1):
@@ -183,6 +196,18 @@ class TextRepeaterApp(ctk.CTk):
                 time.sleep(0.05)
                 pyautogui.press("enter")
                 
+                # JUMP TO NEXT CHAT / TEXT BOX IF CONFIGURED!
+                if nav_key:
+                    time.sleep(0.1) # micro-rest before switching focus
+                    try:
+                        if '+' in nav_key:
+                            keys = [k.strip().lower() for k in nav_key.split('+')]
+                            pyautogui.hotkey(*keys)
+                        else:
+                            pyautogui.press(nav_key.lower())
+                    except Exception:
+                        pass # Ignore if user typed an invalid key
+
                 # Dynamic delay
                 actual_delay = delay + random.uniform(0.0, 0.3)
                 
